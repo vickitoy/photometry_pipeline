@@ -631,7 +631,7 @@ def autopipeastrometry(pipevar=inpipevar):
         os.system('rm -f ' + pipevar['imworkingdir'] + 'sfp' + pipevar['prefix'] + '*.fits')
         os.system('rm -f ' + pipevar['imworkingdir'] + 'zsfp' + pipevar['prefix'] + '*.fits')
 
-def autopipestack(pipevar=inpipevar):
+def autopipestack(pipevar=inpipevar, customcat=None, customcatfilt=[]):
     """
     NAME:
         autopipepipestack
@@ -770,24 +770,56 @@ def autopipestack(pipevar=inpipevar):
                 
                 if 'SDSS' in filter:
                     filter = filter[-1].lower()
-                
-                # Create catalog star file 
-                # (python get_SEDs.py imfile filter catfile USNOB_THRESH alloptstars)
-                sedcmd = 'python ' + pipevar['getsedcommand'] + ' ' + imfile + ' ' +\
+
+                nocustomcat = False
+                # If custom catalog provided, match the same objects as the *.im file
+                # and create refmag (reference magnitudes) that have the same matched
+                # indices                    
+                if customcat != None and filter in customcatfilt:
+
+                    print 'USING CUSTOM CATALOG'
+                    in_data = np.loadtxt(imfile)
+                    input_coords = in_data[:, :2]
+                    cat_data = np.loadtxt(customcat, skiprows=1)
+                    cat_coords = cat_data[:,:2]
+                    
+                    cat_matches, tmp = apd.identify_matches(input_coords, cat_coords)
+                    
+                    refmag = np.zeros(len(mag)) + 99
+                    mode = np.zeros(len(mag)) + -1
+                    for i, i_ind in enumerate(cat_matches):
+                        if i_ind > 0:
+                            #print input_coords[i], cat_coords[i_ind]
+                            refmag[i] = cat_data[i_ind,catdict[filter]]
+                            mode[i] = 4
+                    
+                    # If no matching indices, run with the standard catalogs
+                    if sum(refmag<90.0) == 0: nocustomcat = True
+                else:
+                    nocustomcat = True
+                    
+                # If custom catalog not provided, catalog doesn't include filter, or 
+                # no objects from catalog found in image then
+                # use get_SEDs.py to make catalog using 2MASS + (SDSS or APASS or USNOB1)
+                if nocustomcat:
+                    # Create catalog star file 
+                    # (python get_SEDs.py imfile filter catfile USNOB_THRESH alloptstars)
+                    sedcmd = 'python ' + pipevar['getsedcommand'] + ' ' + imfile + ' ' +\
                          filter + ' ' + catfile + " 15 True "+ qtcmd
                 
-                if pipevar['verbose'] > 0: print sedcmd
-                os.system(sedcmd)
+                    if pipevar['verbose'] > 0: print sedcmd
+                    os.system(sedcmd)
                 
-                if not os.path.isfile(catfile):
-                    zpts += [float('NaN')]
-                    continue
+                    if not os.path.isfile(catfile):
+                        zpts += [float('NaN')]
+                        continue
                 
-                # Read in catalog file
-                cvars = np.loadtxt(catfile, unpack=True)
-                
-                refmag = cvars[catdict[filter],:]
-                mode   = cvars[catdict['mode'],:]
+                    # Read in catalog file
+                    cvars = np.loadtxt(catfile, unpack=True)
+                    refmag = cvars[catdict[filter],:]
+                    mode   = cvars[catdict['mode'],:]
+                    
+
                 
                 # Find catalog filter values and only cutoff values of actual detections
                 goodind = (mode != -1) & (refmag < 90.0) & (flag < 8) & (elon <= 1.5)
@@ -803,7 +835,6 @@ def autopipestack(pipevar=inpipevar):
                     if obserr[i] < 0.1:
                         obskpm[i] = obsmag[i]
                         obswts[i] = 1.0/(max(obserr[i], 0.01)**2)
-
                 zpt, scats, rmss = apd.calc_zpt(np.array([refmag]), np.array([obskpm]), 
                                                 np.array([obswts]), sigma=3.0)
                                 

@@ -787,6 +787,7 @@ class catalog():
                 if not np.sum( np.isfinite(tmp) ):
                     raise ValueError( 'No matches to input objects found!' )
                 mass = mass[ input_matches>=0 ]
+                
             # match sdss, apass, usnob objects to 2mass objects
             if sdss != None:
                 sdss_matches, tmp = identify_matches( mass[:,:2], sdss[:,:2] )
@@ -796,6 +797,7 @@ class catalog():
                 	ocat = sdss              
             else:
                 sdss_matches = -9999*np.ones(len(mass), dtype='int')
+                
             if apass != None:
                 apass_matches, tmp = identify_matches( mass[:,:2], apass[:,:2] )
                 if cmode == -1:
@@ -852,7 +854,6 @@ class catalog():
             raise ValueError( "No good sources in this field!" )
         
 
-        
         # send all of these matches to the CPU pool to get modeled
         objects = zip( modes, object_mags )
         pool = mp.Pool( processes=N_CORES )

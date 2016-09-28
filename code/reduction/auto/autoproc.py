@@ -2,7 +2,8 @@ import autoproc_steps as ap
 import os
 
 def autoproc(datadir=None, imdir=None, start=None, stop=None, only=None, step=None,
-    nocrclean=None, nomastersky=None, redo=None, quiet=None, rmifiles=None):
+    nocrclean=None, nomastersky=None, redo=None, quiet=None, rmifiles=None,
+    customcat=None, customcatfilt=[]):
 
     """
     NAME:
@@ -12,26 +13,39 @@ def autoproc(datadir=None, imdir=None, start=None, stop=None, only=None, step=No
     CALLING SEQUENCE:
         ratautoproc, [settings]
     INPUTS (all optional):
-        datadir     - Location of raw data (current directory if unspecified)
-        imdir	    - Location of processed data ('imredux' if unspecified)
-        start	    - Start with this step, skipping previous ones
-        stop        - End with this step, skipping subsequent ones
-        only        - Do only this step
-        step        -  (completely identical to only, takes precedence)
-        redo        - Repeat step(s), overwriting any existing files
-        nocrclean   - Do not zap cosmic rays
-        nomastersky - Do not create master sky, only subtract median of sky
-        quiet	    - (mainly) silent output unless errors
-        rmifiles    - Removes intermediate files
+        datadir       - Location of raw data (current directory if unspecified)
+        imdir	      - Location of processed data ('imredux' if unspecified)
+        start	      - Start with this step, skipping previous ones
+        stop          - End with this step, skipping subsequent ones
+        only          - Do only this step
+        step          -  (completely identical to only, takes precedence)
+        redo          - Repeat step(s), overwriting any existing files
+        nocrclean     - Do not zap cosmic rays
+        nomastersky   - Do not create master sky, only subtract median of sky
+        quiet	      - (mainly) silent output unless errors
+        rmifiles      - Removes intermediate files
+        customcat     - Custom catalog (txt file) to determine instrumental zeropoint 
+                        corrections
+                        Must be in same format as what get_SEDs.py produces 
+                        (i.e. ra(deg)	dec(deg)	u	g	r	i	z	y	B	V	R	
+                        I	J	H	K	u_err	g_err	r_err	i_err	y_err	B_err	
+                        V_err	R_err	I_err	J_err	H_err	K_err	Mode)
+                        First line will be skipped (use for headers)
+                        everything but JHK are expected to be in AB magnitudes, JHK should
+                        be in same units as 2MASS (Vega mags)
+        customcatfilt - Filters relevant to custom catalog file (all other filters will
+                        use get_SEDs.py to calculate catalog from 2MASS + (SDSS or APASS
+                        or USNOB1) in that order
+                      
     ADDITIONAL OPTIONS:
-        If any of the following files are found in the directory where ratautoproc
+        If any of the following files are found in the directory where autoproc
         is run, it will change the default behavior.
        
         pipeautoproc.par - Contains various defaults (mainly directory paths)
     COMMENTS:
         This code is meant to be fully automated, producing science-quality
         output with a single command line with zero intervention.  Reduces
-        RATIR data.
+        RATIR and LMI data.
         
         The production of images is quite high-level and includes photometric 
         calibration of the field (although the accuracy of this has not been
@@ -49,10 +63,8 @@ def autoproc(datadir=None, imdir=None, start=None, stop=None, only=None, step=No
    
         The program tries very hard to correct for observer mistakes. But it's not perfect.
         If problems occur, generally the easiest fix is to delete any 
-        offending files (images that are difficult to distinguish whether they 
-        are twilight flats can cause various problems, for example) and rerun.
-        More significant problems generally require direct modification of the
-        code, which is still in production. 
+        offending files and rerun. More significant problems generally require direct 
+        modification of the code. 
 
         Filenames for the input raw images are expected to be in 
         2*.fits format. They can be either in the working directory or 
@@ -130,6 +142,11 @@ def autoproc(datadir=None, imdir=None, start=None, stop=None, only=None, step=No
                     you can simply rerun the pipeline (without deleting any files and 
                     without setting the redo flag) and it will try to repeat any failed 
                     steps of this nature. 
+    
+    - Pipeline adapted from Dan Perley LRIS pipeline 
+      (http://www.dark-cosmology.dk/~dperley/code/code.html)
+      
+    - Modifications made by Vicki Toy and John Capone
     """
     
     # Load default parameters and interpret user arguments.
@@ -229,7 +246,7 @@ def autoproc(datadir=None, imdir=None, start=None, stop=None, only=None, step=No
         if step == 'skysub' and nomastersky != None:  ap.autopipeskysubmed(pipevar=pipevar)    
         if step == 'crclean' and nocrclean == None: ap.autopipecrcleanim(pipevar=pipevar)
         if step == 'astrometry': ap.autopipeastrometry(pipevar=pipevar),
-        if step == 'stack'     : ap.autopipestack(pipevar=pipevar)
+        if step == 'stack'     : ap.autopipestack(pipevar=pipevar, customcat=customcat, customcatfilt=customcatfilt)
 
     # Prints the files that were not flat fielded due to problems with file
     if pipevar['flatfail'] != '':

@@ -7,6 +7,7 @@ import astrometrystats as astst
 import cosmics
 import matplotlib.pyplot as plt
 import timeit
+import scipy
 
 def pipeprepare(filename, outname=None, biasfile=None, darkfile=None, verbose=1):
 
@@ -980,4 +981,38 @@ def medclip2d(indata, clipsig=3.0, maxiter=5, verbose=0, overaxis=0):
         print 'Mean computed in %i iterations' % (iter)
         print 'Mean = %.6f, sigma = %.6f' % (med, sigma)
  
-    return med, sigma    
+    return med, sigma  
+    
+def identify_matches( queried_stars, found_stars, match_radius=3. ):
+    '''
+    Use a kd-tree (3d) to match two lists of stars, using full spherical coordinate distances.
+    
+    queried_stars, found_stars: numpy arrays of [ [ra,dec],[ra,dec], ... ] (all in decimal degrees)
+    match_radius: max distance (in arcseconds) allowed to identify a match between two stars.
+    
+    Returns two arrays corresponding to queried stars:
+    indices - an array of the indices (in found_stars) of the best match. Invalid (negative) index if no matches found.
+    distances - an array of the distances to the closest match. NaN if no match found.
+    '''
+    # make sure inputs are arrays
+    queried_stars = np.array(queried_stars)
+    found_stars = np.array(found_stars)
+    
+    ra1, dec1 = queried_stars[:,0], queried_stars[:,1]
+    ra2, dec2 = found_stars[:,0], found_stars[:,1]
+    dist = 2.778e-4*match_radius # convert arcseconds into degrees 
+    
+    cosd = lambda x : np.cos(np.deg2rad(x))
+    sind = lambda x : np.sin(np.deg2rad(x))
+    mindist = 2 * sind(dist/2) 
+    getxyz = lambda r, d: [cosd(r)*cosd(d), sind(r)*cosd(d), sind(d)]
+    xyz1 = np.array(getxyz(ra1, dec1))
+    xyz2 = np.array(getxyz(ra2, dec2))
+    
+    tree2 = scipy.spatial.KDTree(xyz2.transpose())
+    ret = tree2.query(xyz1.transpose(), 1, 0, 2, mindist)
+    dist, ind = ret
+    dist = np.rad2deg(2*np.arcsin(dist/2))
+    ind[ np.isnan(dist) ] = -9999
+    
+    return ind, dist
