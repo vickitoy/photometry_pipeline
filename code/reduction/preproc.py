@@ -672,7 +672,7 @@ def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=
                         if instrum.has_cam_dark(cam_i):
                             disp_im1 -= mdark_data*instrum.get_exptime(h)
                         
-                        disp_im1 /= mflat_data
+                        disp_im1 = np.divide(disp_im1, mflat_data)
 
                     ax = fig.add_subplot(121)
                     plot_params_science(ax, disp_im1, instrum.get_filter(h, 'C{}'.format(cam_i)),

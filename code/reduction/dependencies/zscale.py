@@ -3,7 +3,7 @@ taken from numdisplay: http://stsdas.stsci.edu/numdisplay/
 """
 
 import math
-import numpy
+import numpy as np
 
 MAX_REJECT = 0.5
 MIN_NPIXELS = 5
@@ -22,8 +22,10 @@ def zscale (image, nsamples=1000, contrast=0.25, bpmask=None, zmask=None):
 
     # Sample the image
     samples = zsc_sample (image, nsamples, bpmask, zmask)
+    samples = samples[np.isfinite(samples)]
     npix = len(samples)
     samples.sort()
+    
     zmin = samples[0]
     zmax = samples[-1]
     # For a zero-indexed array
@@ -45,6 +47,7 @@ def zscale (image, nsamples=1000, contrast=0.25, bpmask=None, zmask=None):
         z2 = zmax
     else:
         if contrast > 0: zslope = zslope / contrast
+        
         z1 = max (zmin, median - (center_pixel - 1) * zslope)
         z2 = min (zmax, median + (npix - center_pixel) * zslope)
     return z1, z2
@@ -67,7 +70,7 @@ def zsc_fit_line (samples, npix, krej, ngrow, maxiter):
     #
     # First re-map indices from -1.0 to 1.0
     xscale = 2.0 / (npix - 1)
-    xnorm = numpy.arange(npix)
+    xnorm = np.arange(npix)
     xnorm = xnorm * xscale - 1.0
 
     ngoodpix = npix
@@ -75,7 +78,7 @@ def zsc_fit_line (samples, npix, krej, ngrow, maxiter):
     last_ngoodpix = npix + 1
 
     # This is the mask used in k-sigma clipping.  0 is good, 1 is bad
-    badpix = numpy.zeros(npix, dtype="int32")
+    badpix = np.zeros(npix, dtype="int32")
 
     #
     #  Iterate
@@ -85,8 +88,8 @@ def zsc_fit_line (samples, npix, krej, ngrow, maxiter):
         if (ngoodpix >= last_ngoodpix) or (ngoodpix < minpix):
             break
         
-        # Accumulate sums to calculate straight line fit
-        goodpixels = numpy.where(badpix == GOOD_PIXEL)
+        # Accumulate sums to calculate straight line fit        
+        goodpixels = np.where(badpix == GOOD_PIXEL)
         sumx = xnorm[goodpixels].sum()
         sumxx = (xnorm[goodpixels]*xnorm[goodpixels]).sum()
         sumxy = (xnorm[goodpixels]*samples[goodpixels]).sum()
@@ -95,8 +98,8 @@ def zsc_fit_line (samples, npix, krej, ngrow, maxiter):
 
         delta = sum * sumxx - sumx * sumx
         # Slope and intercept
-        intercept = (sumxx * sumy - sumx * sumxy) / delta
-        slope = (sum * sumxy - sumx * sumy) / delta
+        intercept = np.divide((sumxx * sumy - sumx * sumxy), delta)
+        slope = np.divide((sum * sumxy - sumx * sumy), delta)
         
         # Subtract fitted line from the data array
         fitted = xnorm*slope + intercept
@@ -110,17 +113,17 @@ def zsc_fit_line (samples, npix, krej, ngrow, maxiter):
         # Detect and reject pixels further than k*sigma from the fitted line
         lcut = -threshold
         hcut = threshold
-        below = numpy.where(flat < lcut)
-        above = numpy.where(flat > hcut)
+        below = np.where(flat < lcut)
+        above = np.where(flat > hcut)
 
         badpix[below] = BAD_PIXEL
         badpix[above] = BAD_PIXEL
         
         # Convolve with a kernel of length ngrow
-        kernel = numpy.ones(ngrow,dtype="int32")
-        badpix = numpy.convolve(badpix, kernel, mode='same')
+        kernel = np.ones(ngrow,dtype="int32")
+        badpix = np.convolve(badpix, kernel, mode='same')
 
-        ngoodpix = len(numpy.where(badpix == GOOD_PIXEL)[0])
+        ngoodpix = len(np.where(badpix == GOOD_PIXEL)[0])
         
         niter += 1
 
@@ -136,7 +139,7 @@ def zsc_compute_sigma (flat, badpix, npix):
     # Ignore rejected pixels
 
     # Accumulate sum and sum of squares
-    goodpixels = numpy.where(badpix == GOOD_PIXEL)
+    goodpixels = np.where(badpix == GOOD_PIXEL)
     sumz = flat[goodpixels].sum()
     sumsq = (flat[goodpixels]*flat[goodpixels]).sum()
     ngoodpix = len(goodpixels[0])
