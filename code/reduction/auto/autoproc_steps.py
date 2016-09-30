@@ -7,6 +7,7 @@ from astropy import wcs
 import re
 import datetime
 from astropy.time import Time
+import sys
 
 inpipevar = {'autoastrocommand':'autoastrometry', 'getsedcommand':'get_SEDs', 
 			'sexcommand':'sex' , 'swarpcommand':'swarp' , 'rmifiles':0,  
@@ -922,8 +923,11 @@ def autopipestack(pipevar=inpipevar, customcat=None, customcatfilt=[]):
             head   = pf.getheader(outfl)
             pixscl = head['PIXSCALE']
             
-            apd.findsexobj(outfl, 10.0, pipevar, pix=pixscl, aperture=20.0,
+            try:
+                apd.findsexobj(outfl, 10.0, pipevar, pix=pixscl, aperture=20.0,
                            wtimage=outwt, quiet=quiet)
+            except:
+                sys.exit('Problem opening coadd fits file, may need to coadd in smaller bin size')
                            
             head   = pf.getheader(outfl)
             cpsfdi = 1.34 * float(head['SEEPIX'])
@@ -977,7 +981,6 @@ def autopipestack(pipevar=inpipevar, customcat=None, customcatfilt=[]):
                 for i, i_ind in enumerate(cat_matches):
                     if i_ind > 0:
                         #print input_coords[i], cat_coords[i_ind]
-                        print cat_data[i_ind,catdict[filter]], mag[i]
                         refmag[i] = cat_data[i_ind,catdict[filter]]
                         mode[i] = 4
                     
