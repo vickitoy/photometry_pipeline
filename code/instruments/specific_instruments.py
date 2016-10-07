@@ -330,4 +330,72 @@ class lmi(instrument):
         file_format = 'lmi.????.fits'
         return file_format        
         
-instrument_dict = {'ratir': ratir(), 'lmi':lmi()}
+class rimas(instrument):
+
+    def __init__(self):
+        instrument.__init__(self, 'ratir', 2)
+
+    def possible_filters(self):
+        filters = ['Y', 'J', 'H', 'K']
+        return filters
+
+    def has_cam_bias(self, idx):
+        cam_bias = [False]
+        return cam_bias[idx]
+
+    def has_cam_dark(self, idx):
+        cam_dark = [False]
+        return cam_dark[idx]
+
+    def is_cam_split(self, idx):
+        CAM_SPLIT = [False]
+        return CAM_SPLIT[idx]
+        
+    def change_header_keywords(self, h, cam):
+        # set keyword values
+        h['WAVELENG'] = 'IR'
+    
+        return h
+        
+    def slice(self, cam):
+        C0_SLICE = np.s_[:,:] # NEEDS TO BE DEFINED!
+        C0_SLICE = np.s_[:,:] # NEEDS TO BE DEFINED!
+        
+        slicedict = {'C0': C0_SLICE, 'C1': C1_SLICE}
+        
+        return slicedict[cam]
+        
+    def get_cam_sat(self, h, idx):
+        sat = h['SATURATE']
+        
+        return sat
+    
+    def get_cam_gain(self, h, idx):
+        gain = h['GAIN']
+        
+        return gain      
+
+    def get_exptime(self, h):
+        return h['EXPTIME']
+
+    def get_filter(self, h, cam):
+        return h['FILTER']      
+            
+    def get_centered_filter(self, h, idx):
+        return h['FILTER']  
+
+    def change_file_names(self,files):
+        # Has correct file format, no changes needed
+        
+        # MAY NEED TO BE CHANGED BASED ON FILE NAMES FOR CALIBRATION!!!
+        
+        obstype_postdict = {'SKY FLAT': 'f', 'DOME FLAT': 'f', 
+            'BIAS': 'b', 'OBJECT': 'o'}
+
+        return
+        
+    def original_file_format(self):
+        file_format = '????????T??????C??.fits'
+        return file_format  
+
+instrument_dict = {'ratir': ratir(), 'lmi': lmi(), 'rimas': rimas()}

@@ -885,8 +885,9 @@ def autopipestack(pipevar=inpipevar, customcat=None, customcatfilt=[]):
             if len(badnewflxsc) > 0:
                 if not os.path.exists(pipevar['imworkingdir']+'/badflxsc'):
                     os.makedirs(pipevar['imworkingdir']+'/badflxsc')
-                    
-                os.system('mv ' + badnewflxsc +' '+ pipevar['imworkingdir']+'badflxsc/')
+                
+                for ibad in badnewflxsc:    
+                    os.system('mv ' + ibad +' '+ pipevar['imworkingdir']+'badflxsc/')
                 
                 removedframes += badnewflxsc
             
