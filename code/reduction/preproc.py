@@ -24,7 +24,7 @@ from specific_instruments import instrument_dict
 # Preprocessing constants
 FITS_IN_KEY = lambda n: 'IMCMB{:03}'.format(int(n)) # function to make FITS keywords to store file names of combined frames
 
-def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, reject_sat=True, amin=0.2, amax=0.8, save_select=True, figsize=(8,5)):
+def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, reject_sat=True, amin=0.2, amax=0.8, save_select=True, figsize=(8,5), noplot=False):
     """
     NAME:
         choose_calib
@@ -64,7 +64,7 @@ def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, rej
         af.print_err("Error: cameras must be specified by an integer. Exiting...")
         return
     
-    pl.ion() # pylab in interactive mode
+    if not noplot: pl.ion() # pylab in interactive mode
 
     # move to working directory
     start_dir = os.getcwd()
@@ -91,7 +91,7 @@ def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, rej
             return
 
     # open figure for images if not auto
-    if not auto:
+    if not auto and not noplot:
         fig = pl.figure(figsize=figsize)
 
     # work on FITs files for specified cameras
@@ -220,37 +220,40 @@ def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, rej
                     if (sfrac1 < amin) or (sfrac1 > amax) or (sfrac2 < amin) or (sfrac2 > amax):
                         af.print_warn("Warning: median value outside specified range of {:.0%} - {:.0%} of saturation value in frame.  Skipping frame {}.".format(amin, amax, fits_fn))
                         continue
-                    # show top frame
-                    ax1 = fig.add_subplot(221)
-                    plot_params_calib(ax1, im1, m1, s1, sat_pt, hist=False)
+                        
+                    if not noplot:
+                        # show top frame
+                        ax1 = fig.add_subplot(221)
+                        plot_params_calib(ax1, im1, m1, s1, sat_pt, hist=False)
                     
-                    # show pixel distribution
-                    axhist = fig.add_subplot(222)
-                    plot_params_calib(axhist, im1, m1, s1, sat_pt, hist=True)
+                        # show pixel distribution
+                        axhist = fig.add_subplot(222)
+                        plot_params_calib(axhist, im1, m1, s1, sat_pt, hist=True)
                     
-                    # show bottom frame
-                    ax2 = fig.add_subplot(223)
-                    plot_params_calib(ax2, im2, m2, s2, sat_pt, hist=False)
+                        # show bottom frame
+                        ax2 = fig.add_subplot(223)
+                        plot_params_calib(ax2, im2, m2, s2, sat_pt, hist=False)
                     
-                    # show pixel distribution
-                    axhist = fig.add_subplot(224)
-                    plot_params_calib(axhist, im2, m2, s2, sat_pt, hist=True)
-                    fig.subplots_adjust(wspace=0.1, hspace=0.45)
+                        # show pixel distribution
+                        axhist = fig.add_subplot(224)
+                        plot_params_calib(axhist, im2, m2, s2, sat_pt, hist=True)
+                        fig.subplots_adjust(wspace=0.1, hspace=0.45)
                     
                 else:
                     if (sfrac < amin) or (sfrac > amax):
                         af.print_warn("Warning: median value outside specified range of {:.0%} - {:.0%} of saturation value in frame.  Skipping frame {}.".format(amin, amax, fits_fn))
                         continue
-
-                    # show frame
-                    ax = fig.add_subplot(121)
-                    plot_params_calib(ax, im1, m, s, sat_pt, hist=False)
                     
-                    # show pixel distribution
-                    axhist = fig.add_subplot(122)
-                    plot_params_calib(axhist, im1, m, s, sat_pt, hist=True)
+                    if not noplot:
+                        # show frame
+                        ax = fig.add_subplot(121)
+                        plot_params_calib(ax, im1, m, s, sat_pt, hist=False)
                     
-                fig.canvas.draw()
+                        # show pixel distribution
+                        axhist = fig.add_subplot(122)
+                        plot_params_calib(axhist, im1, m, s, sat_pt, hist=True)
+                    
+                if not noplot: fig.canvas.draw()
                         
                 # query user until valid response is provided
                 valid_entry = False
@@ -298,10 +301,11 @@ def choose_calib(instrument, ftype, workdir='.', cams=[0,1,2,3], auto=False, rej
             hdulist.close() # close FITs file
 
     if auto:
-        af.print_head("\nDisplaying automatically selected {} frames:".format(ftype))
-        af.show_list(fits_list_dict)
+        if not noplot: 
+            af.print_head("\nDisplaying automatically selected {} frames:".format(ftype))
+            af.show_list(fits_list_dict)
     else:
-        pl.close('all') # close image to free memory
+        if not noplot: pl.close('all') # close image to free memory
 
     if save_select:
         dt = datetime.datetime.now()
@@ -467,7 +471,7 @@ def plot_params_science(ax, disp_im, filter, h, central=False, window_zoom=4):
         ax.set_title(r"{} band".format(filter))
         
 def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=False, save_select=True, 
-                    figsize=(10,10), window_zoom=4, calibrate=False):
+                    figsize=(10,10), window_zoom=4, calibrate=False, noplot=False):
 
     """
     PURPOSE:
@@ -544,7 +548,7 @@ def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=
             return
 
     # open figure for images if not auto
-    if not auto:
+    if not auto and not noplot:
         fig = pl.figure(figsize=figsize)
 
     # work on FITs files for specified cameras
@@ -642,25 +646,26 @@ def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=
                         disp_im1 = np.divide(disp_im1, mflat_data1)
                         disp_im2 = np.divide(disp_im2, mflat_data2)
                     
-                    # display top
-                    ax1 = fig.add_subplot(221)
-                    plot_params_science(ax1, disp_im1, instrum.get_filter(h,'C{}a'.format(cam_i)),
-                        h, central=False)
+                    if not noplot:
+                        # display top
+                        ax1 = fig.add_subplot(221)
+                        plot_params_science(ax1, disp_im1, instrum.get_filter(h,'C{}a'.format(cam_i)),
+                            h, central=False)
 
-                    # and central subregion
-                    ax1s = fig.add_subplot(222)
-                    plot_params_science(ax1s, disp_im1, instrum.get_filter(h,'C{}a'.format(cam_i)),
-                        h, central=True)
+                        # and central subregion
+                        ax1s = fig.add_subplot(222)
+                        plot_params_science(ax1s, disp_im1, instrum.get_filter(h,'C{}a'.format(cam_i)),
+                            h, central=True)
 
-                    # display bottom
-                    ax2 = fig.add_subplot(223)
-                    plot_params_science(ax2, disp_im2, instrum.get_filter(h,'C{}b'.format(cam_i)),
-                        h, central=False)
+                        # display bottom
+                        ax2 = fig.add_subplot(223)
+                        plot_params_science(ax2, disp_im2, instrum.get_filter(h,'C{}b'.format(cam_i)),
+                            h, central=False)
 
-                    # and central subregion
-                    ax2s = fig.add_subplot(224)
-                    plot_params_science(ax2s, disp_im2, instrum.get_filter(h, 'C{}b'.format(cam_i)),
-                        h, central=True)
+                        # and central subregion
+                        ax2s = fig.add_subplot(224)
+                        plot_params_science(ax2s, disp_im2, instrum.get_filter(h, 'C{}b'.format(cam_i)),
+                            h, central=True)
                 
                 else:
                     disp_im1 = np.copy(im1)
@@ -673,18 +678,20 @@ def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=
                             disp_im1 -= mdark_data*instrum.get_exptime(h)
                         
                         disp_im1 = np.divide(disp_im1, mflat_data)
+                    
+                    if not noplot:
+                        ax = fig.add_subplot(121)
+                        plot_params_science(ax, disp_im1, instrum.get_filter(h, 'C{}'.format(cam_i)),
+                            h, central=False)
 
-                    ax = fig.add_subplot(121)
-                    plot_params_science(ax, disp_im1, instrum.get_filter(h, 'C{}'.format(cam_i)),
-                        h, central=False)
-
-                    # and central subregion
-                    axs = fig.add_subplot(122)
-                    plot_params_science(axs, disp_im1, instrum.get_filter(h, 'C{}'.format(cam_i)),
-                        h, central=True)                    
+                        # and central subregion
+                        axs = fig.add_subplot(122)
+                        plot_params_science(axs, disp_im1, instrum.get_filter(h, 'C{}'.format(cam_i)),
+                            h, central=True)                    
                 
-                fig.set_tight_layout(True)
-                fig.canvas.draw()
+                if not noplot:
+                    fig.set_tight_layout(True)
+                    fig.canvas.draw()
             
             if instrum.is_cam_split(cam_i) == True:
                 if instrum.get_centered_filter(h, cam_i).count(instrum.get_filter(h, 'C{}a'.format(cam_i))) != 0:
@@ -782,13 +789,14 @@ def choose_science(instrument, workdir='.', targetdir='.', cams=[0,1,2,3], auto=
                 fig.clear() # clear image
             hdulist.close() # close FITs file
 
-    if not auto:
-        pl.close('all') # close image to free memory
-
     if auto:
-        af.print_head("\nDisplaying automatically selected science frames:")
-        af.show_list(fits_list_dict)
-
+        if not noplot:
+            af.print_head("\nDisplaying automatically selected science frames:")
+            af.show_list(fits_list_dict)
+    else:
+        if not noplot:
+            pl.close('all') # close image to free memory
+            
     if save_select:
         dt = datetime.datetime.now()
         fnout = 'object_'+dt.isoformat().split('.')[0].replace('-','').replace(':','')+'.p' # python pickle extension

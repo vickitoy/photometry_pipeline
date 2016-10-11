@@ -73,7 +73,8 @@ Outline
                                              auto=False,
                                              reject_sat=True,
                                              amin=0.2, amax=0.8,
-                                             save_select=True )
+                                             save_select=True,
+                                             noplot=False )
     ```
     
     #### Input
@@ -95,6 +96,8 @@ Outline
         - only frames with median values in this range can be selected
     - *save_select*:
         - save python dictionary of selected frames to a python pickle if True
+    - noplot:
+        - won't plot chosen frames
     
     #### Return
     - returns a python dictionary of selected frames.  this dictionary is used by *mkmaster*.
@@ -110,7 +113,8 @@ Outline
                                            cams=[0,1,2,3],
                                            auto=True,
                                            save_select=True.
-                                           calibrate=False )
+                                           calibrate=False,
+                                           noplot=False )
     ```
 
     #### Input
@@ -128,6 +132,8 @@ Outline
     - *calibrate*
         - uses calibration files (needs bias, dark, and flat) to display images with
           less noise
+    - noplot:
+        - won't plot chosen frames
     
     #### Return
     - returns a python dictionary of selected frames.
